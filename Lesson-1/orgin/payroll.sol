@@ -1,49 +1,56 @@
-pragma solidity ^0.4.14;
-
-contract Payroll {
-    uint constant payDuration = 10 seconds;
-
-    address owner;
-    uint salary;
-    address employee;
-    uint lastPayday;
-
-    function Payroll() {
-        owner = msg.sender;
-    }
+pragma solidity ^0.4.14;            // 声明合约版本号
+contract Payroll{
+    uint salary = 0;                // 员工工资
+    address staffAddress = 0x0;    // 员工地址
+    uint payDuraton = 0;           // 发薪水周期
+    uint lastPayday = 0;           // 上一次发薪水的时间戳    
     
-    function updateEmployee(address e, uint s) {
-        require(msg.sender == owner);
-        
-        if (employee != 0x0) {
-            uint payment = salary * (now - lastPayday) / payDuration;
-            employee.transfer(payment);
-        }
-        
-        employee = e;
-        salary = s * 1 ether;
-        lastPayday = now;
-    }
-    
-    function addFund() payable returns (uint) {
+    // 返回合约的余额
+    function addFund() payable returns(uint){
         return this.balance;
     }
     
-    function calculateRunway() returns (uint) {
+    // 计算合约的资金还能发几次工资
+    function calulateRunway() returns(uint){
         return this.balance / salary;
     }
     
-    function hasEnoughFund() returns (bool) {
-        return calculateRunway() > 0;
+    // 判断是否够发一次工资
+    function hasEnoughFund() returns(bool){
+        return calulateRunway() > 0;
     }
     
-    function getPaid() {
-        require(msg.sender == employee);
+    // 重置薪水
+    function setSalary(uint newSalary){
+        salary = newSalary;
+    }
+    
+    // 重置发薪水周期
+    function setPayDuraton(uint newDuraton){
+        payDuraton = newDuraton;
+    }
+    
+    // // 重置员工地址
+    function setStaffAddress(address newAddress){
+        if(newAddress != 0x0){
+            staffAddress = newAddress;
+            lastPayday = now;
+        }
+    }
+    
+    // 给员工发工资
+    function getPaid(){
+        if(msg.sender != staffAddress){
+            revert();
+        }
         
-        uint nextPayday = lastPayday + payDuration;
-        assert(nextPayday < now);
+        uint nextPayday = lastPayday + payDuraton;
+        if(nextPayday > now){
+            revert();
 
+        }
+        
         lastPayday = nextPayday;
-        employee.transfer(salary);
+        staffAddress.transfer(salary);
     }
 }
