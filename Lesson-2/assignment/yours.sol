@@ -7,14 +7,12 @@ contract Payroll {
         uint salary;
         uint lastPayday;
     }
-    
-    address admin;  // administrator
-    mapping(address => EmployeeProfile) employees;
-    uint constant payDuration = 10 seconds;
 
-    address employee;
-    uint salary;
-    uint lastPayday;
+    uint constant payDuration = 10 seconds;
+    
+    address admin;    // administrator
+    EmployeeProfile[] employees;
+    uint totalSalary = 0;
     
     function Payroll() {
         admin = msg.sender;
@@ -25,24 +23,29 @@ contract Payroll {
     }
     
     function calculateRunway() public returns (uint) {
-        _loadPayroll(msg.sender);
-        return this.balance / salary;
+        /*uint totals = 0;
+        for (uint i = 0; i < employees.length; i++) {
+            totals += employees[i].salary;
+        }
+        return this.balance / totals;*/
+        return this.balance / totalSalary;
     }
     
     function hasEnoughFund() public returns (bool) {
         return calculateRunway() > 0;
     }
     
-    function getPaid() public {
-        require(msg.sender == employee);
+    /**
+     * Add employee to array
+     */
+    function add(address addr, uint sal) public {
+        require(msg.sender == admin && addr != 0x0);
+        var (employee, index) = _findEmployee(addr);
+        assert(employee.addr == 0x0);
         
-        _loadPayroll(msg.sender);
-        
-        uint nextPayday = nextPayday + payDuration;
-        assert(nextPayday < now);
-        
-        lastPayday = nextPayday;
-        employee.transfer(salary);
+        uint salary = sal * 1 ether;
+        employees.push(EmployeeProfile(addr, salary, now));
+        totalSalary += salary;
     }
     
     /**
@@ -51,46 +54,79 @@ contract Payroll {
      * Require administrator
      */
     function update(address addr, uint sal) public {
-        require(msg.sender == admin);
+        require(msg.sender == admin && addr != 0x0);
+        var (employee, index) = _findEmployee(addr);
+        assert(employee.addr != 0x0);
         
-        employee = addr;
-        salary = sal;
-        _updateEmployee(addr, sal);
+        uint salary = sal * 1 ether;
+        employees[index].salary = salary;
+        employees[index].lastPayday = now;
+        totalSalary += salary - employee.salary;
+        _partialPaid(employee);
+    }
+    
+    function remove(address addr) public {
+        require(msg.sender == admin && addr != 0x0);
+        var (employee, index) = _findEmployee(addr);
+        assert(employee.addr != 0x0);
+        
+        delete employees[index];
+        employees[index] = employees[employees.length - 1];
+        totalSalary -= employee.salary;
+        _partialPaid(employee);
+    }
+    
+    function getPaid() public {
+        var (employee, index) = _findEmployee(msg.sender);
+        assert(employee.addr != 0x0);
+        
+        uint nextPayday = employee.lastPayday + payDuration;
+        assert(nextPayday < now);
+        
+        employees[index].lastPayday = nextPayday;
+        employee.addr.transfer(employee.salary);
+    }
+
+    function _partialPaid(EmployeeProfile employee) private {
+        if (employee.addr == 0x0) return;
+        assert(employee.lastPayday < now);
+
+        uint payment = employee.salary * (now - employee.lastPayday) / payDuration;
+        employee.lastPayday = now;
+        employee.addr.transfer(payment);
+    }
+
+    /*
+     * Find employee profile from employees array.
+     */
+    function _findEmployee(address employeeId) private returns (EmployeeProfile, uint) {
+        if (employeeId != 0x0) {
+            for (uint idx = 0; idx < employees.length; idx++) {
+                if (employees[idx].addr == employeeId) {
+                    return (employees[idx], idx);
+                }
+            }
+        }
     }
     
     /*
      * Perform update employee profile
      */
     function _updateEmployee(address employeeId, uint sal) private {
-        EmployeeProfile profile = employees[employeeId];
-        bool hasProfileCached = profile.addr != 0x0;
+        var (profile, index) = _findEmployee(employeeId);
         
-        if (hasProfileCached) {
-            uint payment = profile.salary * (now - profile.lastPayday) / payDuration;
-            profile.addr.transfer(payment);
-        }
-
-        profile.addr = employeeId;
-        profile.salary = sal * 1 ether;
-        profile.lastPayday = now;
-        
-        if (!hasProfileCached) {
-            employees[employeeId] = profile;
-        }
-    }
-    
-    /*
-     * Load employee profile with employeeId
-     */
-    function _loadPayroll(address addr) private {
-        EmployeeProfile profile = employees[addr];
+        uint salary = sal * 1 ether;
         if (profile.addr != 0x0) {
-            salary = profile.salary;
-            lastPayday = profile.lastPayday;
+            totalSalary -= profile.salary;
+            employees[index].salary = salary;
+            employees[index].lastPayday = now;
+            _partialPaid(profile);
         } else {
-            salary = 1 ether;
-            lastPayday = now;
+            profile.addr = employeeId;
+            profile.salary = salary;
+            profile.lastPayday = now;
+            employees.push(profile);
         }
-        employee = addr;
+        totalSalary += salary;
     }
 }

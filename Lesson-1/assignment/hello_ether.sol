@@ -38,7 +38,7 @@ contract Payroll {
         
         _loadPayroll(msg.sender);
         
-        uint nextPayday = nextPayday + payDuration;
+        uint nextPayday = lastPayday + payDuration;
         assert(nextPayday < now);
         
         lastPayday = nextPayday;
