@@ -9,7 +9,7 @@ contract Payroll {
         uint lastPayDay;
     }
 
-    uint constant payDuration = 10 seconds;
+    uint constant payDuration = 30 days;
 
     address owner;
     uint totalSalary;
@@ -70,14 +70,15 @@ contract Payroll {
 
         uint newSalary = salary * 1 ether;
         assert(newSalary != employee.salary);
-
+	totalSalary -= employee.salary；
+	
 	// 结算工资变化前尚未支付的工资
         _partialPaid(employee);
         employees[index].salary     = newSalary;
         employees[index].lastPayDay = now;
 
 	// 同步工资总金额
-        totalSalary = totalSalary - employee.salary + salary*1 ether;
+        totalSalary +=  salary*1 ether;
     }
 
     function addFund() payable returns (uint) {
