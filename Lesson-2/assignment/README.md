@@ -8,3 +8,4 @@
 - 如何优化calculateRunway这个函数来减少gas的消耗？
 提交：智能合约代码，gas变化的记录，calculateRunway函数的优化
 
+优化前：一名员工：18441gas,两名员工：21022gas,三名员工：23455gas,四名员工：26584gas。。。十名员工：38445gas。
