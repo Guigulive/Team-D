@@ -1,5 +1,6 @@
 pragma solidity ^0.4.14;
 
+
 contract Payroll {
     
     struct EmployeeProfile {
@@ -16,6 +17,11 @@ contract Payroll {
     
     function Payroll() {
         admin = msg.sender;
+    }
+
+    modifier requireAdmin {
+        require(msg.sender == admin);
+        _;
     }
     
     function addFund() payable returns (uint) {
@@ -36,10 +42,9 @@ contract Payroll {
     }
     
     /**
-     * Add employee to array
+     * Add employee to array.
      */
-    function add(address addr, uint sal) public {
-        require(msg.sender == admin && addr != 0x0);
+    function add(address addr, uint sal) public requireAdmin {
         var (employee, index) = _findEmployee(addr);
         assert(employee.addr == 0x0);
         
@@ -49,12 +54,9 @@ contract Payroll {
     }
     
     /**
-     * Update employee profile
-     * <br/>
-     * Require administrator
+     * Update employee profile.
      */
-    function update(address addr, uint sal) public {
-        require(msg.sender == admin && addr != 0x0);
+    function update(address addr, uint sal) public requireAdmin {
         var (employee, index) = _findEmployee(addr);
         assert(employee.addr != 0x0);
         
@@ -65,8 +67,7 @@ contract Payroll {
         _partialPaid(employee);
     }
     
-    function remove(address addr) public {
-        require(msg.sender == admin && addr != 0x0);
+    function remove(address addr) public requireAdmin {
         var (employee, index) = _findEmployee(addr);
         assert(employee.addr != 0x0);
         
@@ -117,16 +118,16 @@ contract Payroll {
         
         uint salary = sal * 1 ether;
         if (profile.addr != 0x0) {
-            totalSalary -= profile.salary;
             employees[index].salary = salary;
             employees[index].lastPayday = now;
+            totalSalary += salary - profile.salary;
             _partialPaid(profile);
         } else {
             profile.addr = employeeId;
             profile.salary = salary;
             profile.lastPayday = now;
             employees.push(profile);
+            totalSalary += salary;
         }
-        totalSalary += salary;
     }
 }
