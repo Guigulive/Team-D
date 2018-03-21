@@ -1,5 +1,6 @@
 pragma solidity ^0.4.14;
 
+
 contract Payroll {
     
     struct EmployeeProfile {
@@ -9,35 +10,46 @@ contract Payroll {
     }
     
     uint constant payDuration = 10 seconds;
+
     address admin;  // administrator
+    uint totalSalary;
     mapping(address => EmployeeProfile) employees;
     
-    function Payroll() {
+    function Payroll() public {
         admin = msg.sender;
     }
 
-    modifier requireAdmin {
+    modifier require_admin {
         require(msg.sender == admin);
         _;
     }
     
-    function addFund() payable returns (uint) {
-        return this.balance;
+    modifier has_employee(address addr) {
+        require(employees[addr].addr != 0x0);
+        _;
     }
     
-    function calculateRunway() public returns (uint) {
-        _loadPayroll(msg.sender);
-        return this.balance / salary;
+    modifier no_employee(address addr) {
+        require(employees[addr].addr == 0x0);
+        _;
     }
     
-    function hasEnoughFund() public returns (bool) {
+    function addFund() public payable returns (uint balance) {
+        return address(this).balance;
+    }
+    
+    function calculateRunway() public view returns (uint runway) {
+        return address(this).balance / totalSalary;
+    }
+    
+    function hasEnoughFund() public view returns (bool hasEnough) {
         return calculateRunway() > 0;
     }
     
     function getPaid() public {
-        var employee = employees[msg.sender];
+        EmployeeProfile storage employee = employees[msg.sender];
         assert(employee.addr != 0x0);
-        
+
         uint nextPayday = employee.lastPayday + payDuration;
         assert(nextPayday < now);
         
@@ -47,11 +59,11 @@ contract Payroll {
 
     /**
      * Add employee mapping.
+     * 
+     * @param addr address of the employee to add
+     * @param sal  employee's salary
      */
-    function add(address addr, uint sal) public requireAdmin {
-        var employee = employees[addr];
-        assert(employee.addr == 0x0);
-        
+    function add(address addr, uint sal) public require_admin no_employee(addr) {
         uint salary = sal * 1 ether;
         employees[addr] = EmployeeProfile(addr, salary, now);
         totalSalary += salary;
@@ -59,49 +71,69 @@ contract Payroll {
     
     /**
      * Update employee profile.
+     * 
+     * @param addr address of the employee to update
+     * @param sal  employee's salary
      */
-    function update(address addr, uint sal) public requireAdmin {
-        var employee = employees[addr];
-        assert(employee.addr != 0x0);
-        
+    function update(address addr, uint sal) public require_admin has_employee(addr) {
+        EmployeeProfile memory employee = employees[addr];
         uint salary = sal * 1 ether;
-        employee.salary = salary;
-        employee.lastPayday = now;
+        employees[addr].salary = salary;
+        employees[addr].lastPayday = now;
         totalSalary += salary - employee.salary;
         _partialPaid(employee);
     }
     
     /**
      * Remove pay the employee with id specified.
+     * 
+     * @param addr address of the employee to remove
      */
-    function remove(address addr) public requireAdmin {
-        var employee = employees[addr];
-        assert(employee.addr != 0x0);
-        
+    function remove(address addr) public require_admin has_employee(addr) {
+        EmployeeProfile memory employee = employees[addr];
         totalSalary -= employee.salary;
         _partialPaid(employee);
-        delete employee;
+        delete employees[addr];
     }
     
-    /*
+    /**
      * Update or add employee profile.
+     * 
+     * @param employeeId address of the employee to update
+     * @param sal        employee's salary
      */
-    function updateEmployee(address employeeId, uint sal) public requireAdmin {
-        var profile = employees[employeeId];
-        
+    function updateEmployee(address employeeId, uint sal) public require_admin {
+        EmployeeProfile memory profile = employees[employeeId];
+
         uint salary = sal * 1 ether;
         if (profile.addr != 0x0) {
+            // update
+            employees[employeeId].salary = salary;
+            employees[employeeId].lastPayday = now;
             totalSalary += salary - profile.salary;
             _partialPaid(profile);
-            profile.salary = salary;
-            profile.lastPayday = now;
         } else {
+            // add new employee
             profile.addr = employeeId;
             profile.salary = salary;
             profile.lastPayday = now;
-            employee[employeeId] = profile;
+            employees[employeeId] = profile;
             totalSalary += salary;
         }
+    }
+    
+    /**
+     * Change employee's address.
+     * 
+     * @param employeeAddr address of the employee to change
+     * @param newAddress   employee's new address
+     */
+    function changePaymentAddress(address employeeAddr, address newAddress) public require_admin has_employee(employeeAddr) no_employee(newAddress) {
+        require(newAddress != employeeAddr && newAddress != 0x0);
+
+        EmployeeProfile memory employee = employees[employeeAddr];
+        employee.addr = newAddress;
+        delete employees[employeeAddr];
     }
 
     function _partialPaid(EmployeeProfile employee) private {
