@@ -1,0 +1,9 @@
+/migrations/
+/truffle.js
+/truffle-config.js
+
+build/
+
+contracts/ConvertLib.sol
+contracts/MetaCoin.sol
+contracts/Migrations.sol
