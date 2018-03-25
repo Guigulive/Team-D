@@ -1,7 +1,12 @@
 pragma solidity ^0.4.14;
 
 
+import "./SafeMath.sol";
+
+
 contract Payroll {
+
+    using SafeMath for uint;
     
     struct EmployeeProfile {
         address addr;
@@ -13,7 +18,7 @@ contract Payroll {
 
     address admin;  // administrator
     uint totalSalary;
-    mapping(address => EmployeeProfile) employees;
+    mapping(address => EmployeeProfile) public employees;
     
     function Payroll() public {
         admin = msg.sender;
@@ -39,7 +44,7 @@ contract Payroll {
     }
     
     function calculateRunway() public view returns (uint runway) {
-        return address(this).balance / totalSalary;
+        return address(this).balance.div(totalSalary);
     }
     
     function hasEnoughFund() public view returns (bool hasEnough) {
@@ -50,7 +55,7 @@ contract Payroll {
         EmployeeProfile storage employee = employees[msg.sender];
         assert(employee.addr != 0x0);
 
-        uint nextPayday = employee.lastPayday + payDuration;
+        uint nextPayday = employee.lastPayday.add(payDuration);
         assert(nextPayday < now);
         
         employee.lastPayday = nextPayday;
@@ -64,9 +69,9 @@ contract Payroll {
      * @param sal  employee's salary
      */
     function add(address addr, uint sal) public require_admin no_employee(addr) {
-        uint salary = sal * 1 ether;
+        uint salary = sal.mul(1 ether);
         employees[addr] = EmployeeProfile(addr, salary, now);
-        totalSalary += salary;
+        totalSalary = totalSalary.add(salary);
     }
     
     /**
@@ -77,10 +82,10 @@ contract Payroll {
      */
     function update(address addr, uint sal) public require_admin has_employee(addr) {
         EmployeeProfile memory employee = employees[addr];
-        uint salary = sal * 1 ether;
+        uint salary = sal.mul(1 ether);
         employees[addr].salary = salary;
         employees[addr].lastPayday = now;
-        totalSalary += salary - employee.salary;
+        totalSalary = totalSalary.add(salary).sub(employee.salary);
         _partialPaid(employee);
     }
     
@@ -91,7 +96,7 @@ contract Payroll {
      */
     function remove(address addr) public require_admin has_employee(addr) {
         EmployeeProfile memory employee = employees[addr];
-        totalSalary -= employee.salary;
+        totalSalary = totalSalary.sub(employee.salary);
         _partialPaid(employee);
         delete employees[addr];
     }
@@ -105,12 +110,12 @@ contract Payroll {
     function updateEmployee(address employeeId, uint sal) public require_admin {
         EmployeeProfile memory profile = employees[employeeId];
 
-        uint salary = sal * 1 ether;
+        uint salary = sal.mul(1 ether);
         if (profile.addr != 0x0) {
             // update
             employees[employeeId].salary = salary;
             employees[employeeId].lastPayday = now;
-            totalSalary += salary - profile.salary;
+            totalSalary = totalSalary.add(salary).sub(profile.salary);
             _partialPaid(profile);
         } else {
             // add new employee
@@ -118,7 +123,7 @@ contract Payroll {
             profile.salary = salary;
             profile.lastPayday = now;
             employees[employeeId] = profile;
-            totalSalary += salary;
+            totalSalary = totalSalary.add(salary);
         }
     }
     
