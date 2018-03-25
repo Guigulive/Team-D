@@ -1,9 +1,23 @@
 /migrations/
+/node_modules/
+/box-img*.png
 /truffle.js
 /truffle-config.js
 
 build/
+config/
+scripts/
+src/
+tmp-*/
+
+public/favicon.ico
+public/index.html
+package.json
 
 contracts/ConvertLib.sol
 contracts/MetaCoin.sol
 contracts/Migrations.sol
+contracts/SimpleStorage.sol
+
+test/simplestorage.js
+test/TestSimpleStorage.sol
