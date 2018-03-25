@@ -19,17 +19,19 @@ contract('Payroll', function (accounts) {
         });
     });
 
-    it("Test addEmployee & removeEmployee.", function () {
+    it("Test add & remove employee.", function () {
         return Payroll.deployed().then(contract => {
             payroll = contract;
-            return payroll.addFund({
-                value: web3.toWei(100, 'ether'),
-                from: admin
-            });
-        }).then(() => {
             return payroll.add(employee, salary, {
                 from: admin
             });
+        }).then(() => {
+            return payroll.addFund.call({
+                value: web3.toWei(100, 'ether'),
+                from: admin
+            });
+        }).then(balance => {
+            assert(balance > 0, "Balance zero.");
         }).then(() => {
             return payroll.employees(employee);
         }).then(profile => {
@@ -42,7 +44,8 @@ contract('Payroll', function (accounts) {
         }).then(profile => {
             assert.equal(profile[0], 0, "Fail to remove employee.");
         }).catch(error => {
-            console.log(error.toString());
+            //console.log(error);
+            assert(!error.toString().includes("Error: VM Exception while processing transaction: revert"), "Try test add & remove fail");
         });
     });
 
@@ -62,7 +65,7 @@ contract('Payroll', function (accounts) {
                 id: 0
             });
         }).then(() => {
-            return payroll.addFund({
+            return payroll.addFund.call({
                 value: web3.toWei(100, 'ether'),
                 from: admin
             });
@@ -79,7 +82,8 @@ contract('Payroll', function (accounts) {
         }).then(runway => {
             assert.notEqual(runway, lastRunway, "Fail to call getPaid.");
         }).catch(error => {
-            console.log(error.toString());
+            //console.log(error);
+            assert(!error.toString().includes("Error: VM Exception while processing transaction: revert"), "Try test add & remove fail");
         });
     });
 });

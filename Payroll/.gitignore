@@ -20,5 +20,5 @@ contracts/MetaCoin.sol
 contracts/Migrations.sol
 contracts/SimpleStorage.sol
 
-test/simplestorage.js
-test/TestSimpleStorage.sol
+test/simplestorage*
+test/TestSimpleStorage*
