@@ -97,8 +97,8 @@ contract Payroll {
     function remove(address addr) public require_admin has_employee(addr) {
         EmployeeProfile memory employee = employees[addr];
         totalSalary = totalSalary.sub(employee.salary);
-        _partialPaid(employee);
         delete employees[addr];
+        _partialPaid(employee);
     }
     
     /**

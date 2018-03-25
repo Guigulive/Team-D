@@ -23,7 +23,7 @@ contract('Payroll', function (accounts) {
         return Payroll.deployed().then(contract => {
             payroll = contract;
             return payroll.addFund({
-                value: web3.toWei(1000, 'ether'),
+                value: web3.toWei(100, 'ether'),
                 from: admin
             });
         }).then(() => {
@@ -38,12 +38,11 @@ contract('Payroll', function (accounts) {
                 from: admin
             });
         }).then(() => {
-            assert.equal
             return payroll.employees(employee);
         }).then(profile => {
             assert.equal(profile[0], 0, "Fail to remove employee.");
         }).catch(error => {
-            console.log(error);
+            console.log(error.toString());
         });
     });
 
@@ -64,13 +63,13 @@ contract('Payroll', function (accounts) {
             });
         }).then(() => {
             return payroll.addFund({
-                value: web3.toWei(1000, 'ether'),
+                value: web3.toWei(100, 'ether'),
                 from: admin
             });
         }).then(() => {
             return payroll.calculateRunway();
         }).then(runway => {
-            assert.notEqual(runway > 0, "Fail to try addFund, no enough fund for paid.");
+            assert(runway > 0, "Fail to try addFund, no enough fund for paid.");
             lastRunway = runway;
             return payroll.getPaid({
                 from: employee
@@ -80,7 +79,7 @@ contract('Payroll', function (accounts) {
         }).then(runway => {
             assert.notEqual(runway, lastRunway, "Fail to call getPaid.");
         }).catch(error => {
-            console.log(error);
+            console.log(error.toString());
         });
     });
 });
