@@ -13,18 +13,17 @@ contract Payroll is Ownable {
         address addr;
         uint salary;
         uint lastPayday;
+        uint index;
     }
     
     uint constant payDuration = 10 seconds;
 
-    address admin;  // administrator
     address[] employeeAddrs;
     uint totalSalary;
     uint totalEmployee;
     mapping(address => EmployeeProfile) public employees;
     
     function Payroll() public {
-        admin = msg.sender;
     }
     
     modifier has_employee(address addr) {
@@ -68,7 +67,8 @@ contract Payroll is Ownable {
      */
     function add(address addr, uint sal) public onlyOwner no_employee(addr) {
         uint salary = sal.mul(1 ether);
-        employees[addr] = EmployeeProfile(addr, salary, now);
+        employees[addr] = EmployeeProfile(addr, salary, now, totalEmployee);
+        employeeAddrs.push(addr);
         totalSalary = totalSalary.add(salary);
         totalEmployee = totalEmployee.add(1);
     }
@@ -84,6 +84,7 @@ contract Payroll is Ownable {
         uint salary = sal.mul(1 ether);
         employees[addr].salary = salary;
         employees[addr].lastPayday = now;
+        employeeAddrs[employee.index] = addr;
         totalSalary = totalSalary.add(salary).sub(employee.salary);
         _partialPaid(employee);
     }
@@ -95,9 +96,18 @@ contract Payroll is Ownable {
      */
     function remove(address addr) public onlyOwner has_employee(addr) {
         EmployeeProfile memory employee = employees[addr];
+        delete employees[addr];
         totalSalary = totalSalary.sub(employee.salary);
         totalEmployee = totalEmployee.sub(1);
-        delete employees[addr];
+
+        uint indexRm = employee.index;
+        delete employeeAddrs[indexRm];
+        uint indexTail = employeeAddrs.length.sub(1);
+        if (indexTail > indexRm) {
+            address employeeLast = employeeAddrs[indexTail];
+            employees[employeeLast].index = indexRm;
+            employeeAddrs[indexRm] = employeeLast;
+        }
         _partialPaid(employee);
     }
     

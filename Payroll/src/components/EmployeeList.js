@@ -1,5 +1,4 @@
 /* eslint-disable */
-
 import React, { Component } from 'react'
 import { Table, Button, Modal, Form, InputNumber, Input, message, Popconfirm } from 'antd';
 
@@ -8,99 +7,105 @@ import EditableCell from './EditableCell';
 const FormItem = Form.Item;
 
 const columns = [{
-  title: '地址',
-  dataIndex: 'address',
-  key: 'address',
+    title: '地址',
+    dataIndex: 'address',
+    key: 'address',
 }, {
-  title: '薪水',
-  dataIndex: 'salary',
-  key: 'salary',
+    title: '薪水',
+    dataIndex: 'salary',
+    key: 'salary',
 }, {
-  title: '上次支付',
-  dataIndex: 'lastPaidDay',
-  key: 'lastPaidDay',
+    title: '上次支付',
+    dataIndex: 'lastPaidDay',
+    key: 'lastPaidDay',
 }, {
-  title: '操作',
-  dataIndex: '',
-  key: 'action'
+    title: '操作',
+    dataIndex: '',
+    key: 'action'
 }];
 
 class EmployeeList extends Component {
-  constructor(props) {
-    super(props);
+    constructor(props) {
+        super(props);
 
-    this.state = {
-      loading: true,
-      employees: [],
-      showModal: false
-    };
+        this.state = {
+            loading: true,
+            employees: [],
+            showModal: false
+        };
 
-    columns[1].render = (text, record) => (
-      <EditableCell
-          value={text}
-          onChange={ this.updateEmployee.bind(this, record.address) } />
-    );
+        columns[1].render = (text, record) => (
+            <EditableCell
+                value={text}
+                onChange={ this.updateEmployee.bind(this, record.address) } />
+        );
 
-    columns[3].render = (text, record) => (
-      <Popconfirm
-          title="你确定删除吗?"
-          onConfirm={() => this.removeEmployee(record.address)}>
-        <a href="#">Delete</a>
-      </Popconfirm>
-    );
-  }
+        columns[3].render = (text, record) => (
+            <Popconfirm 
+                title="你确定删除吗?"
+                onConfirm={() => this.removeEmployee(record.address)}>
+                <a href="#">删除</a>
+            </Popconfirm>
+        );
+    }
 
-  componentDidMount() {
-    const { payroll, account, web3 } = this.props;
-    payroll.checkInfo({ from: account })
-      .then((result) => {
-      const employeeCount = result[2].toNumber();
+    componentDidMount() {
+        const { payroll, account, web3 } = this.props;
+        payroll.checkInfo({
+            from: account
+        }).then((result) => {
+            const employeeCount = result[2].toNumber();
 
-      if (employeeCount === 0) {
-        this.setState({ loading: false });
-        return;
-      }
+            if (employeeCount === 0) {
+                this.setState({ loading: false });
+                return;
+            }
 
-      this.loadEmployees(employeeCount);
-    });
-  }
+            this.loadEmployees(employeeCount);
+        });
+    }
 
-  loadEmployees(employeeCount) {
-    const { payroll, account, web3 } = this.props;
+    loadEmployees(employeeCount) {
+        const { payroll, account, web3 } = this.props;
         const requests = [];
 
-        for(let i = 0; i < employeeCount; i++){
+        for (let i = 0; i < employeeCount; i++) {
             requests.push(payroll.checkEmployee(i, { from: account }));
         }
 
         Promise.all(requests).then(values => {
             const employees = values.map(value => {
-              var obj = {
-                key: value[0],
-                address: value[0],
-                balance: null,
-                salary: web3.fromWei(value[1].toNumber()),
-                lastPaidDay: new Date(value[2].toNumber() * 1000).toString()
-            };
+                var obj = {
+                    key: value[0],
+                    address: value[0],
+                    balance: null,
+                    salary: web3.fromWei(value[1].toNumber()),
+                    lastPaidDay: new Date(value[2].toNumber() * 1000).toString()
+                };
 
-            var balnce = web3.fromWei(web3.eth.getBalance(obj.address).valueOf());
-            obj.balance = balnce;
+                var balnce = web3.fromWei(web3.eth.getBalance(obj.address).valueOf());
+                obj.balance = balnce;
 
-            return obj;
-          });
+                return obj;
+            });
 
-          this.setState({
-            employees,
-            loading: false
-          });
+            this.setState({
+                employees,
+                loading: false
+            });
+        }).catch(err => {
+            console.log(err);
         });
-  }
+    }
 
-  addEmployee = () => {
-    const { payroll, account } = this.props;
-    const { address, salary, employees } = this.state;
-    payroll.addEmployee(address,salary, { from:account, gas:1000000 })
-        .then(() => {
+    addEmployee = () => {
+        const { payroll, account } = this.props;
+        const { address, salary, employees } = this.state;
+        payroll.add(address,salary, {
+            from: account,
+            gas: 1000000
+        }).then(() => {
+            alert("Employee added.");
             const newEmployee = {
                 address,
                 salary,
@@ -113,16 +118,18 @@ class EmployeeList extends Component {
                 employees: employees.concat([ newEmployee ])
             });
         });
-  }
+    }
 
-  updateEmployee = (address, salary) => {
-    const { payroll, account } = this.props;
-    const { employees }= this.state;
-    payroll.updateEmployee(address,salary,{ from: account })
-        .then(() => {
+    updateEmployee = (address, salary) => {
+        const { payroll, account } = this.props;
+        const { employees } = this.state;
+        payroll.update(address, salary, {
+            from: account,
+            gas: 1000000
+        }).then(() => {
             this.setState({
                 employees: employees.map(e => {
-                    if(e.address === address){
+                    if (e.address === address){
                         e.salary = salary;
                     }
                 })
@@ -130,71 +137,62 @@ class EmployeeList extends Component {
         }).catch(e => {
             message.error("error:" + e);
         });
-  }
+    }
 
-  removeEmployee = (employeeId) => {
-    const { payroll, account } = this.props;
-    const { employees } = this.state;
-    payroll.removeEmployee(employeeId, { from: account })
-          .then(() => {              
-              this.setState({
-                  employees:employees.filter(e => {
-                          e.address != employeeId;
-                  })
-              });
-          }).catch(e => {
-              message.error("error:" + e);
-          });
-  }
+    removeEmployee = (employeeId) => {
+        const { payroll, account } = this.props;
+        const { employees } = this.state;
+        payroll.remove(employeeId, {
+            from: account,
+            gas: 1000000
+        }).then(() => {    
+            alert("Employee removed.");          
+            this.setState({
+                employees: employees.filter(e => e.address != employeeId)
+            });
+        }).catch(e => {
+            message.error("error:" + e);
+        });
+    }
 
-  renderModal() {
-      return (
-      <Modal
-          title="增加员工"
-          visible={this.state.showModal}
-          onOk={this.addEmployee}
-          onCancel={() => this.setState({showModal: false})}
-      >
-        <Form>
-          <FormItem label="地址">
-            <Input
-              onChange={ev => this.setState({address: ev.target.value})}
-            />
-          </FormItem>
+    renderModal() {
+        return (
+            <Modal
+                title="增加员工"
+                visible={this.state.showModal}
+                onOk={this.addEmployee}
+                onCancel={() => this.setState({showModal: false})}>
+                <Form>
+                    <FormItem label="地址">
+                        <Input onChange={ev => this.setState({address: ev.target.value})} />
+                    </FormItem>
 
-          <FormItem label="薪水">
-            <InputNumber
-              min={1}
-              onChange={salary => this.setState({salary})}
-            />
-          </FormItem>
-        </Form>
-      </Modal>
-    );
+                    <FormItem label="薪水">
+                        <InputNumber min={1}
+                            onChange={salary => this.setState({salary})} />
+                    </FormItem>
+                </Form>
+            </Modal>
+        );
+    }
 
-  }
+    render() {
+        const { loading, employees } = this.state;
+        return (
+            <div>
+                <Button
+                    type="primary"
+                    onClick={() => this.setState({showModal: true})}>增加员工</Button>
 
-  render() {
-    const { loading, employees } = this.state;
-    return (
-      <div>
-        <Button
-          type="primary"
-          onClick={() => this.setState({showModal: true})}
-        >
-          增加员工
-        </Button>
+                {this.renderModal()}
 
-        {this.renderModal()}
-
-        <Table
-          loading={loading}
-          dataSource={employees}
-          columns={columns}
-        />
-      </div>
-    );
-  }
+                <Table
+                    loading={loading}
+                    dataSource={employees}
+                    columns={columns} />
+            </div>
+        );
+    }
 }
 
 export default EmployeeList
