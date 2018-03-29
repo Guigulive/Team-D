@@ -7,8 +7,8 @@ import Common from './Common';
 class Employer extends Component {
     constructor(props) {
         super(props);
-            this.state = {};
-        }
+        this.state = {};
+    }
 
     componentDidMount() {
         this.checkEmployee();
@@ -21,9 +21,14 @@ class Employer extends Component {
             gas: 1000000
         }).then((result) => {
             console.log(result);
-            this.setState({
-                salary: result.length >= 2 ? web3.fromWei(result[1].toNumber()) : 0,
-                lastPaidDate: result.length >= 3 ? new Date(result[2].toNumber() * 1000) : 0
+            let salary = result.length >= 2 ? web3.fromWei(result[1].toNumber()) : 0;
+            let lastPayday = result.length >= 3 ? result[2].toNumber() * 1000 : 0;
+            web3.eth.getBalance(result[0], (balance) => {
+                this.setState({
+                    balance: web3.fromWei(balance, 'ether'),
+                    salary: salary,
+                    lastPaidDate: new Date(lastPayday).toString()
+                })
             });
         });
     }
@@ -36,9 +41,10 @@ class Employer extends Component {
             gas :1000000
         }).then((result) => {
             alert("You have been paid.");
+            this.checkEmployee();
         }).catch(e => {
             console.log("employeeId:", account);
-            console.log("getPaid error:", e);
+            console.error("getPaid error:", e);
         });
     }
 

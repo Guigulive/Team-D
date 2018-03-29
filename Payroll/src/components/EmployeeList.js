@@ -75,18 +75,12 @@ class EmployeeList extends Component {
 
         Promise.all(requests).then(values => {
             const employees = values.map(value => {
-                var obj = {
+                return {
                     key: value[0],
                     address: value[0],
-                    balance: null,
                     salary: web3.fromWei(value[1].toNumber()),
-                    lastPaidDay: new Date(value[2].toNumber() * 1000).toString()
+                    lastPayday: new Date(value[2].toNumber() * 1000).toString()
                 };
-
-                var balnce = web3.fromWei(web3.eth.getBalance(obj.address).valueOf());
-                obj.balance = balnce;
-
-                return obj;
             });
 
             this.setState({
@@ -94,7 +88,7 @@ class EmployeeList extends Component {
                 loading: false
             });
         }).catch(err => {
-            console.log(err);
+            console.error(err);
         });
     }
 
