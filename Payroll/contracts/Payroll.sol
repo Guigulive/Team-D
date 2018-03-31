@@ -1,10 +1,11 @@
 pragma solidity ^0.4.14;
 
 
+import "./Ownable.sol";
 import "./SafeMath.sol";
 
 
-contract Payroll {
+contract Payroll is Ownable {
 
     using SafeMath for uint;
     
@@ -12,21 +13,17 @@ contract Payroll {
         address addr;
         uint salary;
         uint lastPayday;
+        uint index;
     }
     
     uint constant payDuration = 10 seconds;
 
-    address admin;  // administrator
+    address[] employeeAddrs;
     uint totalSalary;
+    uint totalEmployee;
     mapping(address => EmployeeProfile) public employees;
     
     function Payroll() public {
-        admin = msg.sender;
-    }
-
-    modifier require_admin {
-        require(msg.sender == admin);
-        _;
     }
     
     modifier has_employee(address addr) {
@@ -68,10 +65,12 @@ contract Payroll {
      * @param addr address of the employee to add
      * @param sal  employee's salary
      */
-    function add(address addr, uint sal) public require_admin no_employee(addr) {
+    function add(address addr, uint sal) public onlyOwner no_employee(addr) {
         uint salary = sal.mul(1 ether);
-        employees[addr] = EmployeeProfile(addr, salary, now);
+        employees[addr] = EmployeeProfile(addr, salary, now, totalEmployee);
+        employeeAddrs.push(addr);
         totalSalary = totalSalary.add(salary);
+        totalEmployee = totalEmployee.add(1);
     }
     
     /**
@@ -80,11 +79,12 @@ contract Payroll {
      * @param addr address of the employee to update
      * @param sal  employee's salary
      */
-    function update(address addr, uint sal) public require_admin has_employee(addr) {
+    function update(address addr, uint sal) public onlyOwner has_employee(addr) {
         EmployeeProfile memory employee = employees[addr];
         uint salary = sal.mul(1 ether);
         employees[addr].salary = salary;
         employees[addr].lastPayday = now;
+        employeeAddrs[employee.index] = addr;
         totalSalary = totalSalary.add(salary).sub(employee.salary);
         _partialPaid(employee);
     }
@@ -94,10 +94,20 @@ contract Payroll {
      * 
      * @param addr address of the employee to remove
      */
-    function remove(address addr) public require_admin has_employee(addr) {
+    function remove(address addr) public onlyOwner has_employee(addr) {
         EmployeeProfile memory employee = employees[addr];
-        totalSalary = totalSalary.sub(employee.salary);
         delete employees[addr];
+        totalSalary = totalSalary.sub(employee.salary);
+        totalEmployee = totalEmployee.sub(1);
+
+        uint indexRm = employee.index;
+        delete employeeAddrs[indexRm];
+        uint indexTail = employeeAddrs.length.sub(1);
+        if (indexTail > indexRm) {
+            address employeeLast = employeeAddrs[indexTail];
+            employees[employeeLast].index = indexRm;
+            employeeAddrs[indexRm] = employeeLast;
+        }
         _partialPaid(employee);
     }
     
@@ -107,7 +117,7 @@ contract Payroll {
      * @param employeeId address of the employee to update
      * @param sal        employee's salary
      */
-    function updateEmployee(address employeeId, uint sal) public require_admin {
+    function updateEmployee(address employeeId, uint sal) public onlyOwner {
         EmployeeProfile memory profile = employees[employeeId];
 
         uint salary = sal.mul(1 ether);
@@ -133,12 +143,34 @@ contract Payroll {
      * @param employeeAddr address of the employee to change
      * @param newAddress   employee's new address
      */
-    function changePaymentAddress(address employeeAddr, address newAddress) public require_admin has_employee(employeeAddr) no_employee(newAddress) {
+    function changePaymentAddress(address employeeAddr, address newAddress) public onlyOwner has_employee(employeeAddr) no_employee(newAddress) {
         require(newAddress != employeeAddr && newAddress != 0x0);
 
         EmployeeProfile memory employee = employees[employeeAddr];
         employee.addr = newAddress;
         delete employees[employeeAddr];
+    }
+
+    /**
+     * Checkout employee profile.
+     */
+    function checkEmployee(uint index) public view returns (address employeeId, uint salary, uint lastPayday) {
+        employeeId = employeeAddrs[index];
+        EmployeeProfile memory employee = employees[employeeId];
+        salary = employee.salary;
+        lastPayday = employee.lastPayday;
+    }
+
+    /**
+     * Checkout payroll information.
+     */
+    function checkInfo() public view returns (uint balance, uint runway, uint employeeCount) {
+        balance = address(this).balance;
+        employeeCount = totalEmployee;
+ 
+        if (totalSalary > 0) {
+            runway = calculateRunway();
+        }
     }
 
     function _partialPaid(EmployeeProfile employee) private {

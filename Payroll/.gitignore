@@ -1,3 +1,4 @@
+.vscode/
 /migrations/
 /node_modules/
 /box-img*.png
