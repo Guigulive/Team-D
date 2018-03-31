@@ -35,17 +35,29 @@ contract Payroll is Ownable {
         require(employees[addr].addr == 0x0);
         _;
     }
+
+    event FundUpdated(uint ballance);
+
+    event EmployeeAdded(address employee);
+
+    event EmployeeUpdated(address employee);
+
+    event EmployeeRemoved(address employee);
+
+    event EmployeePaid(address employee);
     
     function addFund() public payable returns (uint balance) {
-        return address(this).balance;
+        uint b = address(this).balance;
+        emit FundUpdated(b);
+        balance = b;
     }
     
     function calculateRunway() public view returns (uint runway) {
-        return address(this).balance.div(totalSalary);
+        runway = address(this).balance.div(totalSalary);
     }
     
     function hasEnoughFund() public view returns (bool hasEnough) {
-        return calculateRunway() > 0;
+        hasEnough = calculateRunway() > 0;
     }
     
     function getPaid() public {
@@ -57,6 +69,8 @@ contract Payroll is Ownable {
         
         employee.lastPayday = nextPayday;
         employee.addr.transfer(employee.salary);
+
+        emit EmployeePaid(msg.sender);
     }
 
     /**
@@ -71,6 +85,8 @@ contract Payroll is Ownable {
         employeeAddrs.push(addr);
         totalSalary = totalSalary.add(salary);
         totalEmployee = totalEmployee.add(1);
+
+        emit EmployeeAdded(addr);
     }
     
     /**
@@ -87,6 +103,8 @@ contract Payroll is Ownable {
         employeeAddrs[employee.index] = addr;
         totalSalary = totalSalary.add(salary).sub(employee.salary);
         _partialPaid(employee);
+
+        emit EmployeeUpdated(addr);
     }
     
     /**
@@ -109,6 +127,8 @@ contract Payroll is Ownable {
             employeeAddrs[indexRm] = employeeLast;
         }
         _partialPaid(employee);
+
+        emit EmployeeRemoved(addr);
     }
     
     /**

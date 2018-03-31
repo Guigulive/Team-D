@@ -19,6 +19,11 @@ class Fund extends Component {
             from: account,
             gas: 1000000,
             value: web3.toWei(this.state.fund)
+        }).then(result => {
+            this.setState({
+                fund: false,
+                fundAdd: 1
+            });
         });
     }
 
@@ -32,6 +37,7 @@ class Fund extends Component {
                     <FormItem>
                         <InputNumber
                             min={1}
+                            defaultValue={this.state.fundAdd}
                             onChange={fund => this.setState({fund})} />
                     </FormItem>
                     <FormItem>

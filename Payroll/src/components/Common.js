@@ -9,30 +9,28 @@ class Common extends Component {
     }
 
     componentDidMount() {
-        // eslint-disable-next-line
-        const { payroll, web3 } = this.props;
-        // eslint-disable-next-line
+        const { payroll } = this.props;
         const updateInfo = (error, result) => {
             if (!error) {
                 this.checkInfo();
             }
         }
 
-        // this.newFund = payroll.NewFund(updateInfo);
-        // this.getPaid = payroll.getPaid(updateInfo);
-        // this.newEmployee = payroll.NewEmployee(updateInfo);
-        // this.updateEmployee = payroll.UpdateEmployee(updateInfo);
-        // this.removeEmployee = payroll.RemoveEmployee(updateInfo);
+        this.fundUpdated = payroll.FundUpdated(updateInfo);
+        this.employeeAdded = payroll.EmployeeAdded(updateInfo);
+        this.employeeUpdated = payroll.EmployeeUpdated(updateInfo);
+        this.employeeRemoved = payroll.EmployeeRemoved(updateInfo);
+        this.employeePaid = payroll.EmployeePaid(updateInfo);
 
         this.checkInfo();
     }
 
     componentWillUnmount() {
-        // this.newFund.stopWatching();
-        // this.getPaid.stopWatching();
-        // this.newEmployee.stopWatching();
-        // this.updateEmployee.stopWatching();
-        // this.removeEmployee.stopWatching();
+        this.fundUpdated.stopWatching();
+        this.employeeAdded.stopWatching();
+        this.employeeUpdated.stopWatching();
+        this.employeeRemoved.stopWatching();
+        this.employeePaid.stopWatching();
     }
 
     checkInfo = () => {

@@ -4,14 +4,27 @@ import { Card, Col, Row, Layout, Alert, message, Button } from 'antd';
 
 import Common from './Common';
 
-class Employer extends Component {
+class Employee extends Component {
     constructor(props) {
         super(props);
         this.state = {};
     }
 
     componentDidMount() {
+        const { payroll } = this.props;
+        const updateInfo = (error, result) => {
+            if (!error) {
+                this.checkEmployee();
+            }
+        }
+
+        this.employeePaid = payroll.EmployeePaid(updateInfo);
+
         this.checkEmployee();
+    }
+
+    componentWillUnmount() {
+        this.employeePaid.stopWatching();
     }
 
     checkEmployee = () => {
@@ -23,7 +36,8 @@ class Employer extends Component {
             console.log(result);
             let salary = result.length >= 2 ? web3.fromWei(result[1].toNumber()) : 0;
             let lastPayday = result.length >= 3 ? result[2].toNumber() * 1000 : 0;
-            web3.eth.getBalance(result[0], (balance) => {
+            web3.eth.getBalance(account, (balance) => {
+                console.log('balance: ', balance);
                 this.setState({
                     balance: web3.fromWei(balance, 'ether'),
                     salary: salary,
@@ -89,4 +103,4 @@ class Employer extends Component {
     }
 }
 
-export default Employer
+export default Employee
